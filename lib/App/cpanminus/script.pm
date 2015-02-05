@@ -2018,6 +2018,43 @@ sub check_perl_version {
     $req->accepts_module(perl => $]);
 }
 
+sub merge_dep {
+    my ($self, $inject, $dep) = @_;
+
+    require CPAN::Meta::Requirements;
+    my $inject_reqs = CPAN::Meta::Requirements->new;
+    $inject_reqs->add_string_requirement($inject->module, $inject->version || 0);
+    my $dep_reqs = CPAN::Meta::Requirements->new;
+    $dep_reqs->add_string_requirement($dep->module, $dep->version || 0);
+
+    local $@;
+    eval { $dep_reqs->add_requirements($inject_reqs) };
+    if (my $error = $@) {
+        $error =~ s/at (.+) line.*//s;
+        $self->diag("! Injecting dependency '@{[$inject->module]}' failed: $error\n");
+        return;
+    } else {
+        my $req = $dep_reqs->requirements_for_module($dep->module);
+        return App::cpanminus::Dependency->new($dep->module, $req);
+    }
+}
+
+sub inject_deps {
+    my ($self, $installs) = @_;
+    return unless $self->{inject_deps};
+
+    for my $dep (@$installs) {
+        my ($found) = grep {
+            $_->module eq $dep->module
+            && ($_->version || 0) ne ($dep->version || 0)
+        } @{$self->{inject_deps}};
+        if ($found) {
+            my $merged = $self->merge_dep($found => $dep);
+            $dep = $merged if $merged;
+        }
+    }
+}
+
 sub install_deps {
     my($self, $dir, $depth, @deps) = @_;
 
@@ -2036,6 +2073,7 @@ sub install_deps {
     }
 
     if (@install) {
+        $self->inject_deps(\@install);
         $self->diag("==> Found dependencies: " . join(", ",  map $_->module, @install) . "\n");
     }
 
@@ -2542,7 +2580,9 @@ sub extract_meta_prereqs {
     if ($dist->{cpanfile}) {
         my @features = $self->configure_features($dist, $dist->{cpanfile}->features);
         my $prereqs = $dist->{cpanfile}->prereqs_with(@features);
-        return App::cpanminus::Dependency->from_prereqs($prereqs, $dist->{want_phases}, $self->{install_types});
+        my @deps = App::cpanminus::Dependency->from_prereqs($prereqs, $dist->{want_phases}, $self->{install_types});
+        $self->{inject_deps} = \@deps;
+        return @deps;
     }
 
     require CPAN::Meta;
