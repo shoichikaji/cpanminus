@@ -108,6 +108,7 @@ sub new {
         features => {},
         pure_perl => 0,
         cpanfile_path => 'cpanfile',
+        target_perl_version => $]+0,
         @_,
     }, $class;
 }
@@ -220,6 +221,14 @@ sub parse_options {
         'with-all-features' => sub { $self->{features}{__all} = 1 },
         'pp|pureperl!' => \$self->{pure_perl},
         "cpanfile=s" => \$self->{cpanfile_path},
+        "target-perl-version=s" => sub {
+            my $v = $_[1];
+            if ($v =~ /^v?5\.(\d{1,3})\.?(\d+)?$/) { # OK: 5.8, 5.8.1, 5.008, 5.008001, v5.8
+                $self->{target_perl_version} = sprintf "5.%03d%03d", $1+0, ($2||0)+0;
+            } else {
+                $self->diag_fail("Parsing target perl version '$v' failed.\n");
+            }
+        },
         $self->install_type_handlers,
         $self->build_args_handlers,
     );
@@ -1893,18 +1902,20 @@ EOF
 sub core_version_for {
     my($self, $module) = @_;
 
+    my $perl_version = $self->{target_perl_version};
+
     require Module::CoreList; # no fatpack
-    unless (exists $Module::CoreList::version{$]+0}) {
-        die sprintf("Module::CoreList %s (loaded from %s) doesn't seem to have entries for perl $]. " .
+    unless (exists $Module::CoreList::version{$perl_version}) {
+        die sprintf("Module::CoreList %s (loaded from %s) doesn't seem to have entries for perl $perl_version. " .
                     "You're strongly recommended to upgrade Module::CoreList from CPAN.\n",
                     $Module::CoreList::VERSION, $INC{"Module/CoreList.pm"});
     }
 
-    unless (exists $Module::CoreList::version{$]+0}{$module}) {
+    unless (exists $Module::CoreList::version{$perl_version}{$module}) {
         return -1;
     }
 
-    return $Module::CoreList::version{$]+0}{$module};
+    return $Module::CoreList::version{$perl_version}{$module};
 }
 
 sub search_inc {
@@ -1973,7 +1984,7 @@ sub is_deprecated {
 
     my $deprecated = eval {
         require Module::CoreList; # no fatpack
-        Module::CoreList::is_deprecated($meta->{module});
+        Module::CoreList::is_deprecated($meta->{module}); # XXX need to specify target_perl_version?
     };
 
     return $deprecated && $self->loaded_from_perl_lib($meta);
