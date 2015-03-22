@@ -130,6 +130,13 @@ sub search_packages {
     $self->search_metacpan( $module, $version, $allow_dev );
 }
 
+sub escaped_encode_json {
+    my ($self, $data) = @_;
+    my $json = $self->json->encode($data);
+    $json =~ s/([^a-zA-Z0-9_\-.])/uc sprintf("%%%02x",ord($1))/eg;
+    $json;
+}
+
 sub search_metacpan {
     my($self, $module, $version, $allow_dev) = @_;
 
@@ -155,7 +162,7 @@ sub search_metacpan {
 
     my $metacpan_uri = $self->metacpan_uri;
     my $module_uri = "$metacpan_uri/file/_search?source=";
-    $module_uri .= $self->json->encode({
+    $module_uri .= $self->escaped_encode_json({
         query => $query,
         fields => [ 'date', 'release', 'author', 'module', 'status' ],
     });
@@ -176,7 +183,7 @@ sub search_metacpan {
     return unless $release;
 
     my $dist_uri = "$metacpan_uri/release/_search?source=";
-    $dist_uri .= $self->json->encode({
+    $dist_uri .= $self->escaped_encode_json({
         filter => { and => [
             { term => { 'release.name' => $release } },
             { term => { 'release.author' => $author } },
