@@ -4,7 +4,7 @@ use Config;
 use Cwd ();
 use App::cpanminus;
 use App::cpanminus::Dependency;
-use CPAN::Common::Index::MetaCPAN;
+use CPAN::Common::Index::Mux::Conditional;
 use File::Basename ();
 use File::Find ();
 use File::Path ();
@@ -220,7 +220,7 @@ sub parse_options {
         'without-feature=s' => sub { $self->{features}{$_[1]} = 0 },
         'with-all-features' => sub { $self->{features}{__all} = 1 },
         'pp|pureperl!' => \$self->{pure_perl},
-        "cpanfile=s" => \$self->{cpanfile_path},
+        "cpanfile=s" => sub { $self->{cpanfile_path} = $self->maybe_abs($_[1]) },
         $self->install_type_handlers,
         $self->build_args_handlers,
     );
@@ -417,73 +417,6 @@ sub setup_home {
                 "Work directory is $self->{base}\n");
 }
 
-sub package_index_for {
-    my ($self, $mirror) = @_;
-    return $self->source_for($mirror) . "/02packages.details.txt";
-}
-
-sub generate_mirror_index {
-    my ($self, $mirror) = @_;
-    my $file = $self->package_index_for($mirror);
-    my $gz_file = $file . '.gz';
-    my $index_mtime = (stat $gz_file)[9];
-
-    unless (-e $file && (stat $file)[9] >= $index_mtime) {
-        $self->chat("Uncompressing index file...\n");
-        if (eval {require Compress::Zlib}) {
-            my $gz = Compress::Zlib::gzopen($gz_file, "rb")
-                or do { $self->diag_fail("$Compress::Zlib::gzerrno opening compressed index"); return};
-            open my $fh, '>', $file
-                or do { $self->diag_fail("$! opening uncompressed index for write"); return };
-            my $buffer;
-            while (my $status = $gz->gzread($buffer)) {
-                if ($status < 0) {
-                    $self->diag_fail($gz->gzerror . " reading compressed index");
-                    return;
-                }
-                print $fh $buffer;
-            }
-        } else {
-            if (system("gunzip -c $gz_file > $file")) {
-                $self->diag_fail("Cannot uncompress -- please install gunzip or Compress::Zlib");
-                return;
-            }
-        }
-        utime $index_mtime, $index_mtime, $file;
-    }
-    return 1;
-}
-
-sub search_mirror_index {
-    my ($self, $mirror, $module, $version) = @_;
-    $self->search_mirror_index_file($self->package_index_for($mirror), $module, $version);
-}
-
-sub search_mirror_index_file {
-    my($self, $file, $module, $version) = @_;
-
-    open my $fh, '<', $file or return;
-    my $found;
-    while (<$fh>) {
-        if (m!^\Q$module\E\s+([\w\.]+)\s+(\S*)!m) {
-            $found = $self->cpan_module($module, $2, $1);
-            last;
-        }
-    }
-
-    return $found unless $self->{cascade_search};
-
-    if ($found) {
-        if ($self->satisfy_version($module, $found->{module_version}, $version)) {
-            return $found;
-        } else {
-            $self->chat("Found $module $found->{module_version} which doesn't satisfy $version.\n");
-        }
-    }
-
-    return;
-}
-
 sub with_version_range {
     my($self, $version) = @_;
     defined($version) && $version =~ /[<>=]/;
@@ -495,102 +428,78 @@ sub numify_ver {
     eval version->new($ver)->numify;
 }
 
-sub search_metacpan {
-    my($self, $module, $version) = @_;
-    my $resolver = $self->{_metacpan_resolver}
-               ||= CPAN::Common::Index::MetaCPAN->new;
-    my $result = $resolver->search_packages({
-        package => $module, version => $version
-    });
-    return unless $result;
+sub resolver {
+    my $self = shift;
+    return $self->{resolver} if $self->{resolver};
 
-    if ($result->{uri} =~ s{cpan://distfile/}{}) {
-        my $dist = $self->cpan_dist($result->{uri});
-        $dist->{module} = $result->{package};
-        $dist->{module_version} = $result->{version};
-        return $dist;
-    } else {
-        return {
-            source => 'cpan',
-            uris => [ $result->{uri} ],
-            module => $result->{package},
-            module_version => $result->{version},
+    my @resolvers = (
+        { id => 'metadb', class => 'MetaDB' },
+        { id => 'metacpan', class => 'MetaCPAN' },
+    );
+    if (-f $self->{cpanfile_path} && $self->{installdeps}) {
+        push @resolvers, {
+            id => 'cpanfile', class => 'CPANfile',
+            args => { cpanfile => $self->{cpanfile_path} }
         };
     }
-}
-
-sub search_database {
-    my($self, $module, $version) = @_;
-
-    my $found;
-    my $range = ($self->with_version_range($version) || $self->{dev_release});
-
-    if ($range) {
-        $found = $self->search_metacpan($module, $version)   and return $found;
-        $found = $self->search_cpanmetadb($module, $version) and return $found;
-    } else {
-        $found = $self->search_cpanmetadb($module, $version) and return $found;
-        $found = $self->search_metacpan($module, $version)   and return $found;
-    }
-}
-
-sub search_cpanmetadb {
-    my($self, $module, $version) = @_;
-
-    require CPAN::Meta::YAML;
-
-    $self->chat("Searching $module on cpanmetadb ...\n");
-
-    (my $uri = $self->{cpanmetadb}) =~ s{/?$}{/package/$module};
-    my $yaml = $self->get($uri);
-    my $meta = eval { CPAN::Meta::YAML::Load($yaml) };
-    if ($meta && $meta->{distfile}) {
-        return $self->cpan_module($module, $meta->{distfile}, $meta->{version});
+    if (-f $self->{mirror_index}) {
+        push @resolvers, {
+            id => 'local', class => 'LocalPackage',
+            args => { source => $self->{mirror_index} }
+        };
     }
 
-    $self->diag_fail("Finding $module on cpanmetadb failed.");
-    return;
+    my $condition = sub {
+        my ($index, $args) = @_;
+        my @order;
+        if ($self->with_version_range($args->{version}) || $self->{dev_release}) {
+            push @order, "metacpan", "metadb";
+        } else {
+            push @order, "metadb", "metacpan";
+        }
+        my %id = map { $_ => 1 } $index->resolver_ids;
+        unshift @order, "local"    if exists $id{local};
+        unshift @order, "cpanfile" if exists $id{cpanfile};
+        @order;
+    };
+    $self->{resolver} = CPAN::Common::Index::Mux::Conditional->new(
+        condition => $condition,
+        resolvers => \@resolvers,
+    );
 }
 
 sub search_module {
     my($self, $module, $version) = @_;
+    my $result = $self->resolver->search_packages({ package => $module, version => $version });
+    return unless $result;
 
-    if ($self->{mirror_index}) {
-        $self->mask_output( chat => "Searching $module on mirror index $self->{mirror_index} ...\n" );
-        my $pkg = $self->search_mirror_index_file($self->{mirror_index}, $module, $version);
-        return $pkg if $pkg;
+    my $dist = $result->{uri};
+    if ($dist =~ s{^cpan://distfile/}{}) {
+        $dist =~ s!^([A-Z]{2})!substr($1,0,1)."/".substr($1,0,2)."/".$1!e;
 
-        unless ($self->{cascade_search}) {
-           $self->mask_output( diag_fail => "Finding $module ($version) on mirror index $self->{mirror_index} failed." );
-           return;
-        }
+        require CPAN::DistnameInfo;
+        my $d = CPAN::DistnameInfo->new($dist);
+
+        my $id = $d->cpanid;
+        my $fn = substr($id, 0, 1) . "/" . substr($id, 0, 2) . "/" . $id . "/" . $d->filename;
+
+        my @mirrors = @{$self->{mirrors}};
+        my @urls    = map "$_/authors/id/$fn", @mirrors;
+        return {
+            $d->properties,
+            source  => 'cpan',
+            uris    => \@urls,
+        };
+    } else {
+        my ($distvname) = $result->{uri} =~ m{/([^/]+)(?:\.tar\.gz|tgz)$};
+        return +{
+            source => 'cpan',
+            module => $result->{package},
+            module_version => $result->{version},
+            ( $distvname ? (distvname => $distvname) : () ),
+            uris => [ $result->{uri} ],
+        };
     }
-
-    unless ($self->{mirror_only}) {
-        my $found = $self->search_database($module, $version);
-        return $found if $found;
-    }
-
-    MIRROR: for my $mirror (@{ $self->{mirrors} }) {
-        $self->mask_output( chat => "Searching $module on mirror $mirror ...\n" );
-        my $name = '02packages.details.txt.gz';
-        my $uri  = "$mirror/modules/$name";
-        my $gz_file = $self->package_index_for($mirror) . '.gz';
-
-        unless ($self->{pkgs}{$uri}) {
-            $self->mask_output( chat => "Downloading index file $uri ...\n" );
-            $self->mirror($uri, $gz_file);
-            $self->generate_mirror_index($mirror) or next MIRROR;
-            $self->{pkgs}{$uri} = "!!retrieved!!";
-        }
-
-        my $pkg = $self->search_mirror_index($mirror, $module, $version);
-        return $pkg if $pkg;
-
-        $self->mask_output( diag_fail => "Finding $module ($version) on mirror $mirror failed." );
-    }
-
-    return;
 }
 
 sub source_for {
