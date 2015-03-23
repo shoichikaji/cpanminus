@@ -470,7 +470,9 @@ sub resolver {
 
 sub search_module {
     my($self, $module, $version) = @_;
-    my $result = $self->resolver->search_packages({ package => $module, version => $version });
+    my $result = $self->resolver->search_packages({
+        package => $module, version => $version, allow_dev => $self->{dev_release},
+    });
     return unless $result;
 
     my $dist = $result->{uri};
