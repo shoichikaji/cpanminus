@@ -1,0 +1,6 @@
+[submodule "modules/CPAN-Common-Index-CPANfile"]
+	path = modules/CPAN-Common-Index-CPANfile
+	url = https://github.com/shoichikaji/CPAN-Common-Index-CPANfile.git
+[submodule "modules/CPAN-Common-Index-Mux-Conditional"]
+	path = modules/CPAN-Common-Index-Mux-Conditional
+	url = https://github.com/shoichikaji/CPAN-Common-Index-Mux-Conditional.git
