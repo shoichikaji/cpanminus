@@ -444,7 +444,7 @@ sub resolver {
     }
     if (-f $self->{mirror_index}) {
         push @resolvers, {
-            id => 'local', class => 'LocalPackage',
+            id => 'local', class => 'Local',
             args => { source => $self->{mirror_index} }
         };
     }
