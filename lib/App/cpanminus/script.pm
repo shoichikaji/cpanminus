@@ -475,21 +475,7 @@ sub search_module {
 
     my $dist = $result->{uri};
     if ($dist =~ s{^cpan://distfile/}{}) {
-        $dist =~ s!^([A-Z]{2})!substr($1,0,1)."/".substr($1,0,2)."/".$1!e;
-
-        require CPAN::DistnameInfo;
-        my $d = CPAN::DistnameInfo->new($dist);
-
-        my $id = $d->cpanid;
-        my $fn = substr($id, 0, 1) . "/" . substr($id, 0, 2) . "/" . $id . "/" . $d->filename;
-
-        my @mirrors = @{$self->{mirrors}};
-        my @urls    = map "$_/authors/id/$fn", @mirrors;
-        return {
-            $d->properties,
-            source  => 'cpan',
-            uris    => \@urls,
-        };
+        return $self->cpan_dist($dist);
     } else {
         my ($distvname) = $result->{uri} =~ m{/([^/]+)(?:\.tar\.gz|tgz)$};
         return +{
