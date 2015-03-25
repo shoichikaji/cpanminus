@@ -463,6 +463,7 @@ sub resolver {
         @order;
     };
     $self->{resolver} = CPAN::Common::Index::Mux::Conditional->new(
+        verbose => $self->{verbose},
         condition => $condition,
         resolvers => \@resolvers,
     );
