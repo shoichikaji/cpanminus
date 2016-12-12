@@ -1,17 +1,20 @@
 language: perl
 perl:
-  - 5.22 
-  - "5.20"
   - 5.18
   - 5.16
   - 5.14
   - 5.12
   - "5.10"
-  - 5.8
 before_install:
   - perlbrew install-cpanm -f
 install:
   - cpanm -nq --installdeps --with-develop --with-recommends --with-suggests .
 script:
-  - prove --state save -lr xt -j9 || prove --state failed -l
+  - echo "-------------------- 1"; prove --state save -lr xt -j9 || prove --state failed -l
+  - echo "-------------------- 2"; prove --state save -lr xt -j9 || prove --state failed -l
+  - echo "-------------------- 3"; prove --state save -lr xt -j9 || prove --state failed -l
+  - echo "-------------------- 4"; prove --state save -lr xt -j9 || prove --state failed -l
+  - echo "-------------------- 5"; prove --state save -lr xt -j9 || prove --state failed -l
+  - echo "-------------------- 6"; prove --state save -lr xt -j9 || prove --state failed -l
+  - echo "-------------------- 7"; prove --state save -lr xt -j9 || prove --state failed -l
 sudo: false
