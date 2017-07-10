@@ -2691,7 +2691,7 @@ sub init_tools {
 
     return if $self->{initialized}++;
 
-    if ($self->{make} = Menlo::Util::which($Config{make})) {
+    if ($self->{make} = Menlo::Util::which($Config{make}, 1)) {
         $self->chat("You have make $self->{make}\n");
     }
 
