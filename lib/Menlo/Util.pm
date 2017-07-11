@@ -17,10 +17,9 @@ if (WIN32) {
 }
 
 sub which {
-    my($name, $quote) = @_;
+    my $name = shift;
     my $path = File::Which::which($name);
     return unless $path;
-    return $path unless $quote;
     $path =~ /\s/ ? shell_quote($path) : $path;
 }
 
