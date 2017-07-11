@@ -915,7 +915,14 @@ sub run_command {
     }
 
     if (WIN32) {
-        $cmd = Menlo::Util::shell_quote(@$cmd) if ref $cmd eq 'ARRAY';
+        if (ref $cmd eq 'ARRAY') {
+            my($name, @arg) = @$cmd;
+            if ($name =~ /^(["']).*\1$/) {
+                $cmd = join ' ', $name, Menlo::Util::shell_quote(@arg);
+            } else {
+                $cmd = Menlo::Util::shell_quote($name, @arg);
+            }
+        }
         unless ($self->{verbose}) {
             $cmd .= " >> " . Menlo::Util::shell_quote($self->{log}) . " 2>&1";
         }
@@ -985,7 +992,12 @@ sub append_args {
     return $cmd if ref $cmd ne 'ARRAY';
     
     if (my $args = $self->{build_args}{$phase}) {
-        $cmd = join ' ', Menlo::Util::shell_quote(@$cmd), $args;
+        my($name, @arg) = @$cmd;
+        if ($name =~ /^(["']).*\1$/) {
+            $cmd = join ' ', $name, Menlo::Util::shell_quote(@arg), $args;
+        } else {
+            $cmd = join ' ', Menlo::Util::shell_quote($name, @arg), $args;
+        }
     }
 
     $cmd;
