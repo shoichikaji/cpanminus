@@ -14,6 +14,7 @@ use File::Temp ();
 use File::Which qw(which);
 use Getopt::Long ();
 use Symbol ();
+use JSON::PP ();
 use version ();
 
 use constant BAD_TAR => ($^O eq 'solaris' || $^O eq 'hpux');
@@ -1421,7 +1422,11 @@ sub fetch_module {
             my $file;
             eval {
                 local $SIG{INT} = sub { $cancelled = 1; die "SIGINT\n" };
-                $self->mirror($uri, $name);
+                my $res = $self->mirror($uri, $name);
+                if (!$res->{success}) {
+                    my $str = JSON::PP->new->canonical->encode($res);
+                    $self->log($str);
+                }
                 $file = $name if -e $name;
             };
             $self->diag("ERROR: " . trim("$@") . "\n", 1) if $@ && $@ ne "SIGINT\n";
