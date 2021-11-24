@@ -2,6 +2,10 @@ use lib ".";
 use xt::Run;
 use Test::More;
 
+use Config;
+
+plan skip_all => "this perl is built with man pages disabled" unless $Config{installsiteman1dir} && $Config{installsiteman3dir};
+
 my $local_lib = "$ENV{PERL_CPANM_HOME}/perl5";
 
 run("-L", $local_lib, "Hash::MultiValue"); # EUMM
@@ -12,13 +16,8 @@ ok !-e "$local_lib/man", "man page is not generated with -L";
 ok !glob("$local_lib/man/man3/Hash::MultiValue.*");
 ok !glob("$local_lib/man/man3/Sub::Uplevel.*");
 
-my ($out, $err, $exit) = run("-L", $local_lib, "--man-pages", "Hash::MultiValue");
-use Data::Dumper;
-warn Dumper [$out, $err, $exit];
-diag last_build_log;
-($out, $err, $exit) = run("-L", $local_lib, "--man-pages", "Sub::Uplevel");
-warn Dumper [$out, $err, $exit];
-diag last_build_log;
+run("-L", $local_lib, "--man-pages", "Hash::MultiValue");
+run("-L", $local_lib, "--man-pages", "Sub::Uplevel");
 
 ok glob("$local_lib/man/man3/Hash::MultiValue.*");
 ok glob("$local_lib/man/man3/Sub::Uplevel.*");
