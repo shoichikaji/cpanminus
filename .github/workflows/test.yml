@@ -37,12 +37,16 @@ jobs:
           perl -MExtUtils::MakeMaker -MExtUtils::Install -E 'printf "%s %s\n", $_, $_->VERSION for qw(ExtUtils::MakeMaker ExtUtils::Install)'
           prove -lv xt/manpages.t || true
 
-          cpanm -nq ExtUtils::MakeMaker
           perl -V
           perl -MExtUtils::MakeMaker -MExtUtils::Install -E 'printf "%s %s\n", $_, $_->VERSION for qw(ExtUtils::MakeMaker ExtUtils::Install)'
           prove -lv xt/manpages.t || true
 
           cpanm -nq ExtUtils::Install
+          perl -V
+          perl -MExtUtils::MakeMaker -MExtUtils::Install -E 'printf "%s %s\n", $_, $_->VERSION for qw(ExtUtils::MakeMaker ExtUtils::Install)'
+          prove -lv xt/manpages.t || true
+
+          cpanm -nq ExtUtils::MakeMaker
           perl -V
           perl -MExtUtils::MakeMaker -MExtUtils::Install -E 'printf "%s %s\n", $_, $_->VERSION for qw(ExtUtils::MakeMaker ExtUtils::Install)'
           prove -lv xt/manpages.t || true
