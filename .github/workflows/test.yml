@@ -25,6 +25,7 @@ jobs:
         run: cpanm --self-upgrade -nq
       - name: Install Dependencies
         run: |
+          cpanm -nq LWP::Protocol::https
           (cd App-cpanminus && cpanm -nq --installdeps --with-develop --with-recommends --with-suggests .)
           (cd Menlo && cpanm -nq --installdeps --with-develop --with-recommends --with-suggests .)
       - name: Run Tests
