@@ -13,24 +13,19 @@ jobs:
     strategy:
       matrix:
         perl-version:
-          # - '5.8-buster'
-          # - '5.10-buster'
-          # - '5.30'
-          # - '5.32'
-          - '5.34'
+          - '5.8-buster'
+          - '5.10-buster'
+          - 'latest'
     container:
       image: perl:${{ matrix.perl-version }}
     steps:
       - uses: actions/checkout@v2
-      - name: Upgrade cpanm
-        run: cpanm --self-upgrade -nq
       - name: Install Dependencies
         run: |
+          perl App-cpanminus/cpanm -nq App::cpanminus
           cpanm -nq LWP::Protocol::https
           (cd App-cpanminus && cpanm -nq --installdeps --with-develop --with-recommends --with-suggests .)
           (cd Menlo && cpanm -nq --installdeps --with-develop --with-recommends --with-suggests .)
       - name: Run Tests
-        run: |
-          cd App-cpanminus
-          prove -l xt/manpages.t xt/uninstall.t
+        run: (cd App-cpanminus && prove -lr xt -j9)
 
