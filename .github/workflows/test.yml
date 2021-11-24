@@ -31,8 +31,13 @@ jobs:
           (cd Menlo && cpanm -nq --installdeps --with-develop --with-recommends --with-suggests .)
       - name: Run Tests
         run: |
-          perl -MExtUtils::MakeMaker -MExtUtils::Install -E 'printf "%s %s\n", $_, $_->VERSION for qw(ExtUtils::MakeMaker ExtUtils::Install)'
           cd App-cpanminus
-          prove -lv \
-            xt/manpages.t \
-            xt/uninstall.t
+
+          perl -V
+          perl -MExtUtils::MakeMaker -MExtUtils::Install -E 'printf "%s %s\n", $_, $_->VERSION for qw(ExtUtils::MakeMaker ExtUtils::Install)'
+          prove -lv xt/manpages.t || true
+
+          cpanm -nq ExtUtils::MakeMaker ExtUtils::Install
+          perl -V
+          perl -MExtUtils::MakeMaker -MExtUtils::Install -E 'printf "%s %s\n", $_, $_->VERSION for qw(ExtUtils::MakeMaker ExtUtils::Install)'
+          prove -lv xt/manpages.t || true
