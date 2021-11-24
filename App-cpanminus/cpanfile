@@ -21,5 +21,6 @@ on develop => sub {
     recommends 'Compress::Zlib';
     recommends 'File::HomeDir';
     recommends 'LWP::UserAgent', '5.802';
+    recommends 'LWP::Protocol::https';
     recommends 'Module::Signature';
 };
