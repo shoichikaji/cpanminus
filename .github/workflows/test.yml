@@ -1,0 +1,28 @@
+name: test
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        perl-version:
+          - '5.8-buster'
+          - '5.10-buster'
+          - 'latest'
+          - 'threaded'
+    container:
+      image: perl:${{ matrix.perl-version }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Upgrade cpanm
+        run: cpanm --self-upgrade -nq
+      - name: Install Dependencies
+        run: |
+          (cd App-cpanminus && cpanm -nq --installdeps --with-develop --with-recommends --with-suggests .)
+          (cd Menlo && cpanm -nq --installdeps --with-develop --with-recommends --with-suggests .)
+      - name: Run Tests
+        run: cd App-cpanminus && prove -lr t xt
