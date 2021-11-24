@@ -25,16 +25,9 @@ sub run {
     }
 
     my @notest = $ENV{TEST} ? ("--no-notest") : ("--notest");
-    ::diag("==> $^X $executable @notest --quiet --reinstall @mirrors @args");
     my($stdout, $stderr, $exit) = capture {
-        my $exit = system($^X, $executable, @notest, "--quiet", "--reinstall", @mirrors, @args);
-        my $hatena = $?;
-        warn "XXXXXXXXXXXXXXXXXX INNER $exit, $hatena\n";
-        $exit;
+        system($^X, $executable, @notest, "--quiet", "--reinstall", @mirrors, @args);
     };
-    ::diag("==> stdout $stdout");
-    ::diag("==> stderr $stderr");
-    ::diag("==> exit $exit, $?");
     ::diag($stderr) if $stderr and !$ENV{NODIAG};  # Some tests actually want stderr
     return wantarray ? ($stdout, $stderr, $exit) : $stdout;
 }
