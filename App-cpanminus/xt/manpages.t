@@ -12,9 +12,12 @@ ok !-e "$local_lib/man", "man page is not generated with -L";
 ok !glob("$local_lib/man/man3/Hash::MultiValue.*");
 ok !glob("$local_lib/man/man3/Sub::Uplevel.*");
 
-run("-L", $local_lib, "--man-pages", "Hash::MultiValue");
+my ($out, $err, $exit) = run("-L", $local_lib, "--man-pages", "Hash::MultiValue");
+use Data::Dumper;
+warn Dumper [$out, $err, $exit];
 diag last_build_log;
-run("-L", $local_lib, "--man-pages", "Sub::Uplevel");
+($out, $err, $exit) = run("-L", $local_lib, "--man-pages", "Sub::Uplevel");
+warn Dumper [$out, $err, $exit];
 diag last_build_log;
 
 ok glob("$local_lib/man/man3/Hash::MultiValue.*");
