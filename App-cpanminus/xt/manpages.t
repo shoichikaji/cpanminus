@@ -13,8 +13,11 @@ ok !glob("$local_lib/man/man3/Hash::MultiValue.*");
 ok !glob("$local_lib/man/man3/Sub::Uplevel.*");
 
 run("-L", $local_lib, "--man-pages", "Hash::MultiValue");
+diag last_build_log;
 run("-L", $local_lib, "--man-pages", "Sub::Uplevel");
+diag last_build_log;
 
+system "find $local_lib >&2";
 ok glob("$local_lib/man/man3/Hash::MultiValue.*");
 ok glob("$local_lib/man/man3/Sub::Uplevel.*");
 
