@@ -31,8 +31,6 @@ jobs:
         run: |
           cd App-cpanminus
           prove -lv \
-            xt/exit_code.t \
             xt/github_tar.t \
             xt/manpages.t \
-            xt/perl-requires.t \
             xt/uninstall.t
