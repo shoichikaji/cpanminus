@@ -16,8 +16,8 @@ jobs:
           # - '5.8-buster'
           # - '5.10-buster'
           - '5.30'
-          # - 'latest'
-          # - 'threaded'
+          - '5.32'
+          - '5.34'
     container:
       image: perl:${{ matrix.perl-version }}
     steps:
@@ -31,8 +31,8 @@ jobs:
           (cd Menlo && cpanm -nq --installdeps --with-develop --with-recommends --with-suggests .)
       - name: Run Tests
         run: |
+          perl -MExtUtils::MakeMaker -MExtUtils::Install -E 'printf "%s %s\n", $_, $_->VERSION for qw(ExtUtils::MakeMaker ExtUtils::Install)'
           cd App-cpanminus
           prove -lv \
-            xt/github_tar.t \
             xt/manpages.t \
             xt/uninstall.t
