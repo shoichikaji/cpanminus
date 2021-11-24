@@ -33,15 +33,7 @@ jobs:
         run: |
           cd App-cpanminus
 
-          git clone https://github.com/Perl-Toolchain-Gang/ExtUtils-MakeMaker
+          git clone https://github.com/skaji/ExtUtils-MakeMaker
 
-          ( cd ExtUtils-MakeMaker && git checkout v7.34 )
-          PERL5LIB=$PWD/ExtUtils-MakeMaker/lib prove -lv xt/manpages.t || true
-          ( cd ExtUtils-MakeMaker && git checkout v7.35_11 )
-          PERL5LIB=$PWD/ExtUtils-MakeMaker/lib prove -lv xt/manpages.t || true
-          ( cd ExtUtils-MakeMaker && git checkout 4139eb42 )
-          PERL5LIB=$PWD/ExtUtils-MakeMaker/lib prove -lv xt/manpages.t || true
-          ( cd ExtUtils-MakeMaker && git checkout ed404874 )
-          PERL5LIB=$PWD/ExtUtils-MakeMaker/lib prove -lv xt/manpages.t || true
-          ( cd ExtUtils-MakeMaker && git checkout 643e7d77 )
+          ( cd ExtUtils-MakeMaker && git checkout wip-20211124-2356 )
           PERL5LIB=$PWD/ExtUtils-MakeMaker/lib prove -lv xt/manpages.t || true
