@@ -7,6 +7,9 @@ on:
 jobs:
   linux:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: 'script -q -e -c "bash {0}"' # create TTY so that -t STDIN works
     strategy:
       matrix:
         perl-version:
@@ -28,9 +31,8 @@ jobs:
         run: |
           cd App-cpanminus
           prove -lv \
-            xt/exit_code.t
-
-            # xt/github_tar.t \
-            # xt/manpages.t \
-            # xt/perl-requires.t \
-            # xt/uninstall.t
+            xt/exit_code.t \
+            xt/github_tar.t \
+            xt/manpages.t \
+            xt/perl-requires.t \
+            xt/uninstall.t
