@@ -15,7 +15,8 @@ jobs:
         perl-version:
           # - '5.8-buster'
           # - '5.10-buster'
-          - 'latest'
+          - '5.30'
+          # - 'latest'
           # - 'threaded'
     container:
       image: perl:${{ matrix.perl-version }}
