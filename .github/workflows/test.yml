@@ -15,7 +15,7 @@ jobs:
         perl-version:
           - '5.8-buster'
           - '5.10-buster'
-          - 'latest'
+          - '5.12-buster'
     container:
       image: perl:${{ matrix.perl-version }}
     steps:
@@ -27,4 +27,4 @@ jobs:
           (cd App-cpanminus && cpanm -nq --installdeps --with-develop --with-recommends --with-suggests .)
           (cd Menlo && cpanm -nq --installdeps --with-develop --with-recommends --with-suggests .)
       - name: Run Tests
-        run: (cd App-cpanminus && for i in 1 2 3 4 5 6 7 8 9 10; do prove -lrv xt/verify_signature.t; done )
+        run: (cd App-cpanminus && prove -lr xt -j9; prove -lrv xt/verify_signature.t)
