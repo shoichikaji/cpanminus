@@ -1494,6 +1494,10 @@ sub verify_checksums_signature {
         $self->chat("Verified OK!\n");
     } else {
         $rv = "(undef)" unless defined $rv;
+        warn "==> $chk_file\n";
+        open my $fh, "<", $chk_file or die;
+        warn "==> $_\n" for <$fh>;
+        system "gpg --list-key >&2";
         $self->diag_fail("Verifying CHECKSUMS signature failed: $rv\n");
         return;
     }
