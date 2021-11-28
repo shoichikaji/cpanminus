@@ -23,7 +23,9 @@ plan skip_all => 'need gpg' if !$gpg;
     !system $gpg, "--quiet", "--import", $tempfile->filename or die;
     # XXX for some reasons, "gpg --import PAUSE.pub" takes some time. Wait it...
     for my $times (1..10) {
-        my ($first) = `gpg --list-keys PAUSE`;
+        my ($first, @other) = `gpg --list-keys PAUSE`;
+        warn "!!!> $first";
+        warn "!!!> $_" for @other;
         if ($first && $first =~ /2022-07-01/) { # 2022-07-01 is expiration date of PAUSE2022.pub
             last;
         }
